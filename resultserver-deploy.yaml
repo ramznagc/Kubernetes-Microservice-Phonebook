@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: resultserver-container
-        image: ramznagc/result-server:1.0.0
+        image: ramznagc/result-server:1.0.1
         imagePullPolicy: Always
         ports:
         - containerPort: 80
