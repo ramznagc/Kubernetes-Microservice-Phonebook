@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name:  webserver-deploy
+  labels:
+    app:  webserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webserver  
+  template:
+    metadata:
+      labels:
+        app:  webserver
+    spec:
+      containers:
+        - name: webserver-container
+          image: ramznagc/web-server:1.0.0
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 80
+          envFrom:
+          - configMapRef:
+              name: servers-configmap
+          - secretRef:
+              name: shared-secret

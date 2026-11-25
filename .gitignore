@@ -1,0 +1,7 @@
+k8s/shared-secret.yaml
+*.pem
+*.key
+.env
+.env.*
+__pycache__/
+*.pyc

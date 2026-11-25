@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deploy
+spec:
+  strategy: 
+    type: Recreate 
+  selector:
+    matchLabels:
+      tier: db
+  template:
+    metadata:
+      labels:
+        tier: db
+    spec:
+      containers:
+      - name: mysql-container
+        image: mysql:5.7
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"          
+        ports:
+        - containerPort: 3306
+        envFrom:
+        - secretRef:
+            name: shared-secret
+        - configMapRef:
+            name: servers-configmap
+        volumeMounts:
+          - name: data-db
+            mountPath: /var/lib/mysql
+        readinessProbe:
+          exec:
+            command: ["mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          
+      volumes:
+      - name: data-db
+        persistentVolumeClaim:
+          claimName: mysql-pvc
+
+
+      
