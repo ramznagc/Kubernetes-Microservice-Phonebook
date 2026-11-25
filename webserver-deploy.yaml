@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: webserver-container
-          image: ramznagc/web-server:1.0.0
+          image: ramznagc/web-server:1.0.2
           imagePullPolicy: Always
           ports:
           - containerPort: 80
