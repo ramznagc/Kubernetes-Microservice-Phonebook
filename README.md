@@ -1,196 +1,136 @@
-# Project-206: Microservice Architecture for Phonebook Web Application (Python Flask) with MySQL using Kubernetes.
+# Kubernetes Microservice Phonebook
 
-## Description
+A phonebook application deployed on Kubernetes on AWS EC2. The project uses two independent Python Flask services and a shared MySQL database. The webserver handles creating, updating, deleting, and listing contacts; the resultserver provides contact search.
 
-Phonebook Microservice Web Application aims to create a web application with MySQL Database using Docker and Kubernetes to give students the understanding of Microservice architecture. In this application, we have a frontend service and a backend service to interact with database service. Each service will be managed by a Kubernetes deployment. The backend service will be a gateway for the application and it will serve the necessary web pages for create, delete and update operations while the frontend service will serve a search page in order to conduct read operations. To preserve the data in the database, persistent volume and persistent volume claim concepts should be adopted.
+## Architecture
 
-## Problem Statement
+![Microservice architecture](Microservice_structure.png)
 
-![Project_206](Microservice_structure.png) 
+- **Webserver** — Flask application for phonebook operations (NodePort `30001`).
+- **Resultserver** — Flask application for searching contacts (NodePort `30002`).
+- **MySQL** — Shared database, exposed internally as `mysql-svc:3306`.
+- **Persistent storage** — MySQL data is stored through `mysql-pvc` and `mysql-pv`.
 
-- Your team has started working on a project to create a `Phonebook` Application as Web Service.  
+Both Flask services read their database connection settings from `servers-configmap` and credentials from the Kubernetes Secret named `shared-secret`.
 
-- Software Developers in your team have already developed first version of `Phonebook` application. They have designed a database to keep phonebook records with following fields.
+## Application screenshots
 
-  - id: unique identifier for records, data type is integer and it will be auto increment.
+The following screenshots are intended to show the application running in a browser after deployment. Save the actual screenshots in `outputs_after_deploy/` using these filenames; the images will appear here once they are added to the repository.
 
-  - name: name of record, data type is string.
+### Webserver — phonebook application
 
-  - number: phone number belonging to the recorded person.
+![Webserver running on NodePort 30001](outputs_after_deploy/webserver_output.png)
 
-- Your teammates also created the RESTful web service as given in [Phonebook API](./Phonebook-api.py) using Python Flask Framework. Below table shows how the HTTP methods are designed to affect the given resources identified by URIs.
+### Resultserver — contact search
 
-| HTTP Method  | Action | Example|
-| --- | --- | --- |
-| `GET`     |   Read the records | http://[ec2-hostname]:30001/  |
-| `POST`    |   Create a new record | http://[ec2-hostname]:30001/add  |
-| `POST`    |   Update an existing record | http://[ec2-hostname]:30001/update  |
-| `POST`    |   Delete an existing record | http://[ec2-hostname]:30001/delete  |
-| `POST`    |   search a record | http://[ec2-hostname]:30002  |
+![Resultserver running on NodePort 30002](outputs_after_deploy/resultserver_output.png)
 
-- As a cloud engineer, you're requested to deploy the app on an AWS EC2 Instance using Docker and Kubernetes to showcase your project. In order to achieve this goal, you need to;
+> Screenshots should show the working application, but hide public IPs, credentials, and any personal contact data before uploading.
 
-  - Pull the application code from GitHub repo of your team.
-
-  - Create two docker images for create/update/delete and search pages using `Dockerfile`s.
-
-  - Deploy the app using `Kubernetes`. To do so;
-
-    - Create a database service using MySQL.
-
-    - Use a custom network for the services.
-
-- In the Kubernetes environment, you will configure three deployements with their services and a persistent volume for MySQL deployments. You can find the definitions below for the objects you should create:
-
-  1.1. CREATE/DELETE/UPDATE DEPLOYMENT
-
-    - Deployment definition file should configure create/delete/update operations with one or more replicas.
-    - Expose the container port on `port 80`.
-    - Deployment definition file should set the proper Environmental Variables for the db connection.
-    - Passwords should be protected by kubernetes-secrets.
-    - Database Host's value should be defined in the deployment using Kubernetes-ConfigMap.
-
-  1.2. CREATE/DELETE/UPDATE SERVICE
-    - This service should be attached to `CREATE/DELETE/UPDATE Deployment`.
-    - Service type should be NodePort published on `port:30001`.
-    - Expose the port and target port on port `80`.
-
-  2.1. SEARCH DEPLOYMENT
-
-    - Deployment definition file should configure search operations with one or more replicas.
-    - Expose the container port on `port 80`.
-    - Deployment definition file should set the proper Environmental Variables for the db connection.
-    - Passwords should be protected by kubernetes-secrets.
-    - Database Host's value should be defined in the deployment using Kubernetes-ConfigMap.
-
-  2.2. SEARCH SERVICE
-    - This service should be attached to `SEARCH Deployment`.
-    - Service type should be NodePort published on `port:30002`.
-    - Expose the port and target port on port `80`.
-
-  3.1. DATABASE DEPLOYMENT
-    - Deployment should use mysql:5.7 image pulled from Docker hub.
-    - Expose the container port on `port 3306`.
-    - Deployment definition file should set the proper Environmental Variables.
-    - Persistent volume should be attached to this deployment.
-    - Passwords should be protected by kubernetes-secrets.
-
-  3.2. DATABASE SERVICE
-    - This service should be attached to `DATABASE Deployment`.
-    - Service type should be ClusterIP.
-    - Expose the port and target port on port `3306`.
-
-  3.3. Persistent Volume
-    - Volume capacity should be set as `20Gi`.
-    - Access Mode should be set as `ReadWriteOnce`.
-    - Host path should be set as `/mnt/data`.
-    - To be able to attache this volume, a persistent volume claim should be defined.
-  
-  4.1. Kubernetes Environment
-  - Assign two EC2 machines as the project's infrastructure. One should be configured as the master and the other should be configured as the worker. 
-
-  - Minimum `t2.medium` instance type should be selected.
-
-  - The Web Application should be accessible via web browser from anywhere. 
-
-  - The Application files should be downloaded from Github repo and deployed on EC2 Instance using user data script within cloudformation template.
-
-
-## Project Skeleton
+## Repository structure
 
 ```text
-206-Kubernetes-Microservice-Phonebook (folder)
-
-Initial files:
-
-1. README.md                      # Given to the students (Definition of the project)
-2. Image_for_web_server           # Given to the students (Image components of Python Flask Web API for Update/delete/add record)
-  - app.py      
-  - requirements.txt              
-  - templates
-    - index.html
-    - add-update.html
-    - delete.html
-3. image_for_result_server        # Given to the students (Image components of Python Flask Web API for search record)
-  - app.py           
-  - requirements.txt              
-  - templates
-    - index.html
-
-Requested files:
-
-ADD/DELETE/UPDATE DEPLOYMENT AND SERVICE
-1. Dockerfile                     # To be delivered by students 
-2. web_server_deployment.yml      # To be delivered by students
-3. web_server_service.yaml        # To be delivered by students
-
-SEARCH DEPLOYMENT AND SERVICE
-1. Dockerfile                     # To be delivered by students
-2. result_server_deployment.yml   # To be delivered by students
-3. result_server_service.yaml     # To be delivered by students
-
-DATABASE DEPLOYMENT AND SERVICE
-1. mysql_deployement.yml          # To be delivered by students
-2. mysql_service.yaml             # To be delivered by students
-3. persistent_volume.yaml         # To be delivered by students
-4. persistent_volume_claim.yaml   # To be delivered by students
-
-SECRETS AND CONFIGMAP
-1. mysql-secret.yaml              # To be delivered by students
-2. database_configmap.yaml        # To be delivered by students
-3. servers_configmap.yaml         # To be delivered by students
-
+.
+├── image_for_web_server/
+│   ├── Dockerfile
+│   ├── app.py
+│   ├── requirements.txt
+│   ├── templates/
+│   └── static/
+│       └── images/
+│           └── ramazan-logo.png
+├── image_for_result_server/
+│   ├── Dockerfile
+│   ├── app.py
+│   ├── requirements.txt
+│   └── templates/
+├── outputs_after_deploy/
+│   ├── webserver_output.png
+│   └── resultserver_output.png
+├── mysql-deploy.yaml
+├── mysql-pv.yaml
+├── mysql-pvc.yaml
+├── mysql-svc.yaml
+├── servers-configmap.yaml
+├── webserver-deploy.yaml
+├── webserver-svc.yaml
+├── resultserver-deploy.yaml
+├── resultserver-svc.yaml
+├── Microservice_structure.png
+└── README.md
 ```
 
-## Expected Outcome
+## Docker images
 
-### At the end of the project, following topics are to be covered;
+The application images are published on Docker Hub under the `ramznagc` account.
 
-- MySQL Database Configuration
+- Webserver: `ramznagc/web-server:1.0.2`
+- Resultserver: `ramznagc/result-server:1.0.1`
 
-- Docker Images
+Build and push the images from the project root:
 
-- Kubernetes architecture configuration
+```bash
+docker build -t ramznagc/web-server:1.0.2 ./image_for_web_server
+docker build -t ramznagc/result-server:1.0.1 ./image_for_result_server
 
-- AWS EC2 Service
+docker login
+docker push ramznagc/web-server:1.0.2
+docker push ramznagc/result-server:1.0.1
+```
 
-- AWS Security Group Configuration
+## Deploy to Kubernetes
 
-- Git & Github for Version Control System
+Make sure `kubectl` is connected to the target cluster. Before applying the application Deployments, create the Kubernetes Secret named `shared-secret` with the credential keys required by the manifests. Do not commit real Secret values to GitHub. The file `k8s/shared-secret.yaml`, if present locally, is intentionally excluded from version control.
 
-- AWS Cloudformation Service
+Apply the resources from the project root:
 
-### At the end of the project, students will be able to;
+```bash
+kubectl apply -f mysql-pv.yaml
+kubectl apply -f mysql-pvc.yaml
+kubectl apply -f servers-configmap.yaml
+kubectl apply -f mysql-svc.yaml
+kubectl apply -f mysql-deploy.yaml
 
-- configure a connection to the `MySQL` database.
+kubectl apply -f resultserver-deploy.yaml
+kubectl apply -f resultserver-svc.yaml
+kubectl apply -f webserver-deploy.yaml
+kubectl apply -f webserver-svc.yaml
+```
 
-- build Docker images.
+Check the rollout and Kubernetes resources:
 
-- configure Kubernetes to run Python Flask app.
+```bash
+kubectl get pods -o wide
+kubectl get deployments
+kubectl get services
+kubectl get pvc
+```
 
-- improve network skills using `service` objects in Kubernetes
+When the pods are ready, open the NodePort URLs using the public IP address of a node that is reachable from your browser:
 
-- configure AWS EC2 Instance and Security Groups.
+```text
+http://<NODE-PUBLIC-IP>:30001   # Webserver
+http://<NODE-PUBLIC-IP>:30002   # Resultserver
+```
 
-- use git commands (push, pull, commit, add etc.) and Github as Version Control System.
+Allow inbound TCP traffic on ports `30001` and `30002` in the AWS EC2 Security Group. Do not use the example placeholder as a real IP address.
 
-- run the web application on AWS EC2 instance using the GitHub repo as codebase.
+## Configuration and persistent data
 
-- build a Kubernetes infrastructure using Cloudformation.
+- MySQL database: `phonebook`
+- MySQL service: `mysql-svc:3306`
+- Database host and non-sensitive settings: `servers-configmap`
+- Database credentials: Kubernetes Secret `shared-secret`
+- Persistent Volume capacity: `20Gi`
+- Access mode: `ReadWriteOnce`
+- Current PV host path: `/mnt/data`
+- Current PV node affinity: `kube-worker`
 
-## Steps to Solution
-  
-- Step 1: Download or clone project definition from `clarusway` repo on Github
+**Important:** The current PersistentVolume uses a node-local `hostPath` on the worker node. A deployment on another cluster or a different worker requires the data directory and PV configuration to be prepared for that environment. Do not delete or reinitialize `/mnt/data` when redeploying, because it contains the persisted MySQL database.
 
-- Step 2: Create your Kubernetes environment with cloudformation template
+## Security notes
 
-- Step 3: Prepare Dockerfiles for search and delete/update/create pages using Python Flask Apps, create images and push to your Docker Hub Repository.
-
-- Step 4: Prepare search, delete/update/create and mysql parts.
-
-- Step 5: Deploy your work on Kubernetes to showcase your application within your team.
-
-
-## Resources
-
-- [Kubernetes Documentations](https://kubernetes.io/docs/home/)
+- Kubernetes Secret values must not be committed to this public repository. Base64 encoding is not encryption.
+- Replace example values with your own credentials when deploying.
+- Review screenshots before uploading and remove credentials, public IPs if you do not want to disclose them, and real personal contact information.
+- The NodePort ports must be opened only as required by your deployment environment.
